@@ -1,28 +1,41 @@
-// Deployment plan for Dagger's example todoapp
 package todoapp
 
 import (
 	"dagger.io/dagger"
 
-	"universe.dagger.io/git"
 	"universe.dagger.io/yarn"
 )
 
 dagger.#Plan & {
-	// Build the app with yarn
-	actions: build: yarn.#Build
-
-	// Wire up source code to build
-	{
-		input: directories: source: _
-		actions: build: source:     input.directories.source.contents
-	} | {
-		actions: {
-			pull: git.#Pull & {
-				remote: "https://github.com/mdn/todo-react"
-				ref:    "master"
-			}
-			build: source: pull.output
+	inputs: directories: app: path: "./"
+	actions: {
+		build: yarn.#Build & {
+			source: inputs.directories.app.contents
 		}
+		// TODO: This is expected to fail, but it currently doesn't run.
+		test: #AssertFile & {
+			input:    build.output
+			path:     "test"
+			contents: "output\n"
+		}
+		// Each environment will have a specific deploy implementation
+		deploy: _
 	}
+}
+
+// Make an assertion on the contents of a file
+#AssertFile: {
+	input:    dagger.#FS
+	path:     string
+	contents: string
+
+	_read: dagger.#ReadFile & {
+		"input": input
+		"path":  path
+	}
+
+	actual: _read.contents
+
+	// Assertion
+	contents: actual
 }

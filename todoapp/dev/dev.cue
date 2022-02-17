@@ -1,4 +1,3 @@
-// Local dev environment for todoapp
 package todoapp
 
 import (
@@ -6,33 +5,27 @@ import (
 	"universe.dagger.io/nginx"
 )
 
-// Expose todoapp web port
-proxy: web: endpoint: "5000"
-
+inputs: params: web: hostPort: string | *"8080"
 actions: {
-	// Reference app build inherited from base config
-	build: _
-	_app:  build.output
-
-	// Build a container image serving the app with nginx
-	build: docker.#Build & {
+	deploy: docker.#Build & {
 		steps: [
 			nginx.#Build & {
 				flavor: "alpine"
 			},
 			docker.#Copy & {
-				contents: _app
+				contents: test.output
 				dest:     "/usr/share/nginx/html"
+			},
+			// TODO: Confirm that the input is the output of the previous step
+			docker.#Run & {
+				// TODO: How do we connect to the nginx instance?
+				ports: web: {
+					frontend: inputs.params.web.hostPort
+					// TODO: What is this backend config?
+					backend: address: "localhost:5000"
+				}
 			},
 		]
 	}
-
-	// Run the app in an ephemeral container
-	run: docker.#Run & {
-		input: build.output
-		ports: web: {
-			frontend: proxy.web.endpoint
-			backend: address: "localhost:5000"
-		}
-	}
+	// TODO: smoke test
 }
