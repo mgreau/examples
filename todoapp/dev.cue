@@ -9,7 +9,7 @@ import (
 dagger.#Plan & {
 	inputs: {
 		directories: app: path: "./"
-		params: web: hostPort:  string | *"8080"
+		params: web: hostPort:  string | *"8020"
 	}
 	actions: {
 		build: yarn.#Build & {
